@@ -20,7 +20,7 @@ fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 [a-zA-Z][a-zA-Z0-9_]* => (
     case yytext of
     "type" => Tokens.TYPE(yypos, yypos + size yytext)
-    | "var" => TOKENS.VAR(yypos, yypos + size yytext)
+    | "var" => Tokens.VAR(yypos, yypos + size yytext)
     | "function" => Tokens.FUNCTION(yypos, yypos + size yytext)
     | "break" => Tokens.BREAK(yypos, yypos + size yytext)
     | "of" => Tokens.OF(yypos, yypos + size yytext)
