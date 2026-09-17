@@ -6,73 +6,93 @@ val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
 
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
+fun continue () = lex ()
+fun asciiCode s = str(chr(valOf(Int.fromString(String.extract(s, 1, NONE)))))
+
+
+val StringBuffer: string ref = ref ""
+val StringIndex = ref 0
+val StringState = ref 0
 
 %%
-
+%s COMMENT STRING;
 %%
 
-[0-9]+ => (
-    case Int.fromString yytext of
-    SOME n => Tokens.INT(n ,yypos, yypos + size yytext)
+<INITIAL> [\ \t\n\r] => (continue());
+
+
+<INITIAL> "/*" => (YYBEGIN COMMENT; continue());
+<COMMENT> "*/" => (YYBEGIN INITIAL; continue());
+<COMMENT> [.|\n] => (continue());
+
+
+<INITIAL> [0-9]+ => (
+    case Int.fromString yytext of SOME n => Tokens.INT(n ,yypos, yypos + size yytext)
     | None => ErrorMsg.error yypos "Error Integer"
 );
 
-[a-zA-Z][a-zA-Z0-9_]* => (
-    case yytext of
-    "type" => Tokens.TYPE(yypos, yypos + size yytext)
-    | "var" => Tokens.VAR(yypos, yypos + size yytext)
-    | "function" => Tokens.FUNCTION(yypos, yypos + size yytext)
-    | "break" => Tokens.BREAK(yypos, yypos + size yytext)
-    | "of" => Tokens.OF(yypos, yypos + size yytext)
-    | "end" => Token.END(yypos, yypos + size yytext)
-    | "in" => Tokens.IN(yypos, yypos + size yytext)
-    | "nil" => Tokens.NIL(yypos, yypos + size yytext)
-    | "let" => Tokens.LET(yypos, yypos + size yytext)
-    | "to" => Tokens.TO(yypos, yypos + size yytext)
-    | "for" => Tokens.FOR(yypos, yypos + size yytext)
-    | "while" => Tokens.WHILE(yypos, yypos + size yytext)
-    | "else" => Tokens.ELSE(yypos, yypos + size yytext)
-    | "then" => Tokens.THEN(yypos, yypos + size yytext)
-    | "if" => Tokens.IF(yypos, yypos + size yytext)
-    | "array" => Tokens.ARRAY(yypos, yypos + size yytext)
-    | _ => Tokens.ID(yytext, yypos, yypos + size yytext)
-)
+
+<INITIAL>"type" => (Tokens.TYPE(yypos, yypos + size yytext));
+<INITIAL>"var" => (Tokens.VAR(yypos, yypos + size yytext));
+<INITIAL>"function" => (Tokens.FUNCTION(yypos, yypos + size yytext));
+<INITIAL>"break" => (Tokens.BREAK(yypos, yypos + size yytext));
+<INITIAL>"of" => (Tokens.OF(yypos, yypos + size yytext));
+<INITIAL>"end" => (Tokens.END(yypos, yypos + size yytext));
+<INITIAL>"in" => (Tokens.IN(yypos, yypos + size yytext));
+<INITIAL>"nil" => (Tokens.NIL(yypos, yypos + size yytext));
+<INITIAL>"let" => (Tokens.LET(yypos, yypos + size yytext));
+<INITIAL>"to" => (Tokens.TO(yypos, yypos + size yytext));
+<INITIAL>"for" => (Tokens.FOR(yypos, yypos + size yytext));
+<INITIAL>"while" => (Tokens.WHILE(yypos, yypos + size yytext));
+<INITIAL>"else" => (Tokens.ELSE(yypos, yypos + size yytext));
+<INITIAL>"then" => (Tokens.THEN(yypos, yypos + size yytext));
+<INITIAL>"if" => (Tokens.IF(yypos, yypos + size yytext));
+<INITIAL>"array" => (Tokens.ARRAY(yypos, yypos + size yytext));
+
+<INITIAL> [a-zA-Z][a-zA-Z0-9_]* => (Tokens.ID(yytext, yypos, yypos + size yytext));
 
 
 
-
-"\n"	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
-"\t" => (lineNum := !lineNum; linePos := yypos+3; continue());
-"\"" => (Tokens.STRING(yypos,yypos+1));
-"\\" => (continue());
-"\ddd" => (continue());
-
-","	=> (Tokens.COMMA(yypos,yypos+1));
-":" => (Tokens.COLON(yypos,yypos+1));
-";" => (Tokens.SEMICOLON(yypos,yypos+1));
-"(" => (Tokens.LPAREN(yypos,yypos+1));
-")" => (Tokens.RPAREN(yypos,yypos+1));
-"[" => (Tokens.LBRACK(yypos,yypos+1));
-"]" => (Tokens.RBRACK(yypos,yypos+1));
-"{" => (Tokens.LBRACE(yypos,yypos+1));
-"}" => (Tokens.RBRACE(yypos,yypos+1));
-"." => (Tokens.DOT(yypos,yypos+1));
-"+" => (Tokens.PLUS(yypos,yypos+1));
-"-" => (Tokens.MINUS(yypos,yypos+1));
-"*" => (Tokens.TIMES(yypos,yypos+1));
-"/" => (Tokens.DIVIDE(yypos,yypos+1));
-"=" => (Tokens.EQ(yypos,yypos+1));
-"<>" => (Tokens.NEQ(yypos,yypos+2));
-"<" => (Tokens.LT(yypos,yypos+1));
-"<=" => (Tokens.LE(yypos,yypos+2));
-">" => (Tokens.GT(yypos,yypos+1));
-">=" => (Tokens.GE(yypos,yypos+2));
-"&" => (Tokens.AND(yypos,yypos+1));
-"|" => (Tokens.OR(yypos,yypos+1));
-":=" => (Tokens.ASSIGN(yypos,yypos+2));
+<INITIAL>","	=> (Tokens.COMMA(yypos,yypos+1));
+<INITIAL>":" => (Tokens.COLON(yypos,yypos+1));
+<INITIAL>";" => (Tokens.SEMICOLON(yypos,yypos+1));
+<INITIAL>"(" => (Tokens.LPAREN(yypos,yypos+1));
+<INITIAL>")" => (Tokens.RPAREN(yypos,yypos+1));
+<INITIAL>"[" => (Tokens.LBRACK(yypos,yypos+1));
+<INITIAL>"]" => (Tokens.RBRACK(yypos,yypos+1));
+<INITIAL>"{" => (Tokens.LBRACE(yypos,yypos+1));
+<INITIAL>"}" => (Tokens.RBRACE(yypos,yypos+1));
+<INITIAL>"." => (Tokens.DOT(yypos,yypos+1));
+<INITIAL>"+" => (Tokens.PLUS(yypos,yypos+1));
+<INITIAL>"-" => (Tokens.MINUS(yypos,yypos+1));
+<INITIAL>"*" => (Tokens.TIMES(yypos,yypos+1));
+<INITIAL>"/" => (Tokens.DIVIDE(yypos,yypos+1));
+<INITIAL>"=" => (Tokens.EQ(yypos,yypos+1));
+<INITIAL>"<>" => (Tokens.NEQ(yypos,yypos+2));
+<INITIAL>"<" => (Tokens.LT(yypos,yypos+1));
+<INITIAL>"<=" => (Tokens.LE(yypos,yypos+2));
+<INITIAL>">" => (Tokens.GT(yypos,yypos+1));
+<INITIAL>">=" => (Tokens.GE(yypos,yypos+2));
+<INITIAL>"&" => (Tokens.AND(yypos,yypos+1));
+<INITIAL>"|" => (Tokens.OR(yypos,yypos+1));
+<INITIAL>":=" => (Tokens.ASSIGN(yypos,yypos+2));
 
 
-.       => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+
+<INITIAL> \" => (StringState := 1; YYBEGIN STRING; StringIndex := yypos; StringBuffer := ""; continue());
+<STRING> [ _!#-\[\]-~]* => (StringBuffer := !StringBuffer ^ yytext; continue());
+<STRING> [^"\\\n]* => (StringBuffer := !StringBuffer ^ yytext; continue());
+<STRING> \\n => (StringBuffer := !StringBuffer ^ "\n", continue());
+<STRING> \\t => (StringBuffer := !StringBuffer ^ "\t", continue());
+<STRING> \\\" => (StringBuffer := !StringBuffer ^ "\"", continue());
+<STRING> \\\\ => (StringBuffer := !StringBuffer ^ "\\", continue());
+<STRING> \\[0-9][0-9][0-9] => (StringBuffer := !StringBuffer ^ asciiCode(yytext); continue());
+<STRING> \" => (StringState := 0; Tokens.STRING(!StringBuffer, !StringIndex, yypos); YYBEGIN INITIAL);
+
+<STRING> \n => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+<STRING> \n => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+<STRING> . => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+
 
 
 
