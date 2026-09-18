@@ -6,7 +6,6 @@ val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
 
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
-fun continue () = lex ()
 fun asciiCode s = str(chr(valOf(Int.fromString(String.extract(s, 1, NONE)))))
 
 
@@ -28,7 +27,7 @@ val StringState = ref 0
 
 <INITIAL> [0-9]+ => (
     case Int.fromString yytext of SOME n => Tokens.INT(n ,yypos, yypos + size yytext)
-    | NONE => ErrorMsg.error yypos "Error Integer"
+    | NONE => (ErrorMsg.error yypos "Error Integer"; Tokens.INT(0 ,yypos, yypos + size yytext))
 );
 
 
