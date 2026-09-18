@@ -22,7 +22,8 @@ val StringState = ref 0
 
 <INITIAL> "/*" => (YYBEGIN COMMENT; continue());
 <COMMENT> "*/" => (YYBEGIN INITIAL; continue());
-<COMMENT> [.|\n] => (continue());
+<COMMENT> . => (continue());
+<COMMENT> "\n" => (continue());
 
 
 <INITIAL> [0-9]+ => (
