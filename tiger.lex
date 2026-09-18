@@ -28,7 +28,7 @@ val StringState = ref 0
 
 <INITIAL> [0-9]+ => (
     case Int.fromString yytext of SOME n => Tokens.INT(n ,yypos, yypos + size yytext)
-    | None => ErrorMsg.error yypos "Error Integer"
+    | NONE => ErrorMsg.error yypos "Error Integer"
 );
 
 
@@ -82,17 +82,12 @@ val StringState = ref 0
 <INITIAL> \" => (StringState := 1; YYBEGIN STRING; StringIndex := yypos; StringBuffer := ""; continue());
 <STRING> [ _!#-\[\]-~]* => (StringBuffer := !StringBuffer ^ yytext; continue());
 <STRING> [^"\\\n]* => (StringBuffer := !StringBuffer ^ yytext; continue());
-<STRING> \\n => (StringBuffer := !StringBuffer ^ "\n", continue());
-<STRING> \\t => (StringBuffer := !StringBuffer ^ "\t", continue());
-<STRING> \\\" => (StringBuffer := !StringBuffer ^ "\"", continue());
-<STRING> \\\\ => (StringBuffer := !StringBuffer ^ "\\", continue());
+<STRING> \\n => (StringBuffer := !StringBuffer ^ "\n"; continue());
+<STRING> \\t => (StringBuffer := !StringBuffer ^ "\t"; continue());
+<STRING> \\\" => (StringBuffer := !StringBuffer ^ "\""; continue());
+<STRING> \\\\ => (StringBuffer := !StringBuffer ^ "\\"; continue());
 <STRING> \\[0-9][0-9][0-9] => (StringBuffer := !StringBuffer ^ asciiCode(yytext); continue());
-<STRING> \" => (StringState := 0; Tokens.STRING(!StringBuffer, !StringIndex, yypos); YYBEGIN INITIAL);
+<STRING> \" => (StringState := 0; YYBEGIN INITIAL; Tokens.STRING(!StringBuffer, !StringIndex, yypos));
 
-<STRING> \n => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 <STRING> \n => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 <STRING> . => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
-
-
-
-
