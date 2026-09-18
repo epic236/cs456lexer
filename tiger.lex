@@ -5,30 +5,59 @@ val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
 
-fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
+
+val StringBuffer: string ref = ref ""
+val StringIndex: int ref = ref 0
+val StringState: int ref = ref 0
+
+val CommentCount: int ref = ref 0
+
+
+fun eof() =
+    let
+        val pos = hd(!linePos)  
+    in
+        if !CommentCount > 0 then
+            ErrorMsg.error pos "Error: unclosed comment"
+        else if !StringState = 1 then
+            ErrorMsg.error pos "Error: unclosed string"
+        else ();
+        Tokens.EOF(pos, pos)
+    end
+
+
 fun asciiCode s = str(chr(valOf(Int.fromString(String.extract(s, 1, NONE)))))
 
 
-val StringBuffer: string ref = ref ""
-val StringIndex = ref 0
-val StringState = ref 0
-
 %%
-%s COMMENT STRING;
+%s COMMENT STRING SPACE;
 %%
 
-<INITIAL> [\ \t\n\r] => (continue());
+<INITIAL> [\ \t\r] => (continue());
+<INITIAL> \n => (lineNum := !lineNum + 1; linePos := yypos :: !linePos; continue());
 
+<INITIAL> "/*" => (CommentCount := 1; YYBEGIN COMMENT; continue());
 
-<INITIAL> "/*" => (YYBEGIN COMMENT; continue());
-<COMMENT> "*/" => (YYBEGIN INITIAL; continue());
-<COMMENT> . => (continue());
-<COMMENT> "\n" => (continue());
+<COMMENT> "/*" => (CommentCount := !CommentCount + 1; continue());
+<COMMENT> "*/" => (CommentCount := !CommentCount - 1;
+    if !CommentCount = 0
+    then YYBEGIN INITIAL
+    else ();
+    continue()
+);
+
+<COMMENT> "\n" => (
+    lineNum := !lineNum + 1;
+    linePos := yypos :: !linePos;
+    continue()
+);
+
+<COMMENT> [^\n] => (continue());
 
 
 <INITIAL> [0-9]+ => (
     case Int.fromString yytext of SOME n => Tokens.INT(n ,yypos, yypos + size yytext)
-    | NONE => (ErrorMsg.error yypos "Error Integer"; Tokens.INT(0 ,yypos, yypos + size yytext))
+    | NONE => (ErrorMsg.error yypos "Error: illegal integer"; Tokens.INT(0 ,yypos, yypos + size yytext))
 );
 
 
@@ -80,7 +109,6 @@ val StringState = ref 0
 
 
 <INITIAL> \" => (StringState := 1; YYBEGIN STRING; StringIndex := yypos; StringBuffer := ""; continue());
-<STRING> [ _!#-\[\]-~]* => (StringBuffer := !StringBuffer ^ yytext; continue());
 <STRING> [^"\\\n]* => (StringBuffer := !StringBuffer ^ yytext; continue());
 <STRING> \\n => (StringBuffer := !StringBuffer ^ "\n"; continue());
 <STRING> \\t => (StringBuffer := !StringBuffer ^ "\t"; continue());
@@ -88,6 +116,11 @@ val StringState = ref 0
 <STRING> \\\\ => (StringBuffer := !StringBuffer ^ "\\"; continue());
 <STRING> \\[0-9][0-9][0-9] => (StringBuffer := !StringBuffer ^ asciiCode(yytext); continue());
 <STRING> \" => (StringState := 0; YYBEGIN INITIAL; Tokens.STRING(!StringBuffer, !StringIndex, yypos));
+<STRING> "\\" => (YYBEGIN SPACE; continue());
 
-<STRING> \n => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
-<STRING> . => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+<SPACE> [ \t\r\n] => (continue());
+<SPACE> "\\" => (YYBEGIN STRING; continue());
+
+<STRING> \n => (ErrorMsg.error yypos ("Error: illegal character " ^ yytext); continue());
+<STRING> . => (ErrorMsg.error yypos ("Error: illegal character " ^ yytext); continue());
+<INITIAL> # => (ErrorMsg.error yypos ("Error: illegal character " ^ yytext); continue());
